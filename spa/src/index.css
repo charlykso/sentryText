@@ -1,0 +1,158 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  /* Dark mode values (default) */
+  --val-dark-50: #f6f6f7;
+  --val-dark-100: #eef0f2;
+  --val-dark-200: #dadfe5;
+  --val-dark-300: #b8c3d0;
+  --val-dark-400: #90a1b6;
+  --val-dark-500: #72869f;
+  --val-dark-600: #5b6c84;
+  --val-dark-700: #4a576b;
+  --val-dark-800: #3f495a;
+  --val-dark-900: #373f4d;
+  --val-dark-950: #0f1115;
+  
+  --shadow-color: rgba(0, 0, 0, 0.45);
+}
+
+:root.light {
+  /* Light mode values */
+  --val-dark-50: #0f172a;
+  --val-dark-100: #1e293b;
+  --val-dark-200: #334155;
+  --val-dark-300: #475569;
+  --val-dark-400: #64748b;
+  --val-dark-500: #94a3b8;
+  --val-dark-600: #cbd5e1;
+  --val-dark-700: #e2e8f0;
+  --val-dark-800: #f1f5f9;
+  --val-dark-900: #ffffff;
+  --val-dark-950: #f8fafc;
+  
+  --shadow-color: rgba(148, 163, 184, 0.15);
+}
+
+@theme {
+  --color-brand-50: #f5f8ff;
+  --color-brand-100: #ebf1fe;
+  --color-brand-200: #d7e2fd;
+  --color-brand-300: #b4cafe;
+  --color-brand-400: #8ca7fd;
+  --color-brand-500: #637dfc;
+  --color-brand-600: #4b5df5;
+  --color-brand-700: #3a47e0;
+  --color-brand-800: #303abd;
+  --color-brand-900: #2b3397;
+  --color-brand-950: #1e225c;
+
+  --color-dark-50: var(--val-dark-50);
+  --color-dark-100: var(--val-dark-100);
+  --color-dark-200: var(--val-dark-200);
+  --color-dark-300: var(--val-dark-300);
+  --color-dark-400: var(--val-dark-400);
+  --color-dark-500: var(--val-dark-500);
+  --color-dark-600: var(--val-dark-600);
+  --color-dark-700: var(--val-dark-700);
+  --color-dark-800: var(--val-dark-800);
+  --color-dark-900: var(--val-dark-900);
+  --color-dark-950: var(--val-dark-950);
+
+  --font-sans: 'Outfit', 'Inter', sans-serif;
+}
+
+body {
+  @apply bg-dark-950 text-dark-100 font-sans antialiased min-h-screen selection:bg-brand-500 selection:text-white;
+}
+
+/* Custom premium scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-dark-950;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-dark-800 rounded-full hover:bg-brand-500 transition-colors duration-200;
+}
+
+/* Premium micro-interactions & utility classes */
+.glass-panel {
+  @apply bg-dark-900/65 backdrop-blur-lg border border-dark-800/80;
+  box-shadow: 0 20px 25px -5px var(--shadow-color), 0 8px 10px -6px var(--shadow-color);
+}
+
+.glass-panel-hover {
+  @apply hover:border-dark-700/50 hover:bg-dark-900/80 transition-all duration-300;
+}
+
+.glass-input {
+  @apply bg-dark-950/60 border border-dark-800 rounded-xl px-4 py-3 text-dark-100 placeholder-dark-500 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition-all duration-200;
+}
+
+.btn-primary {
+  @apply bg-brand-600 hover:bg-brand-500 text-white rounded-xl px-5 py-3 font-semibold shadow-lg shadow-brand-600/20 hover:shadow-brand-500/30 active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:pointer-events-none;
+}
+
+.btn-secondary {
+  @apply bg-dark-800 hover:bg-dark-700 text-dark-200 rounded-xl px-5 py-3 font-semibold active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:pointer-events-none;
+}
+
+.text-gradient {
+  @apply bg-gradient-to-r from-brand-400 via-brand-500 to-indigo-400 bg-clip-text text-transparent;
+}
+
+/* Smooth transition for theme switching */
+body, .glass-panel, .glass-input, .btn-primary, .btn-secondary, table, td, th, nav, select, input, textarea {
+  transition: background-color 0.25s ease-out, border-color 0.25s ease-out, color 0.2s ease-out, box-shadow 0.25s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-slideDown {
+  animation: slideDown 0.5s ease-out forwards;
+}
+
+@keyframes scaleUp {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.animate-scaleUp {
+  animation: scaleUp 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Specificity overrides for inputs with icons */
+.glass-input.pl-12 {
+  padding-left: 3rem;
+}
+
+.glass-input.pl-10 {
+  padding-left: 2.5rem;
+}
+
+/* Ensure pointer cursor for all interactive elements */
+button, select, a, [role="button"] {
+  cursor: pointer;
+}
+
+button:disabled, select:disabled, [role="button"]:disabled {
+  cursor: not-allowed !important;
+}
