@@ -131,4 +131,4 @@ CREATE DATABASE sentryText_db;
 ## Administrator Login
 To access the Operations Dashboard:
 * **Email:** `admin@sentrytext.com`
-* **Password:** `SentryTextAdmin2026!`
+* **Password:** `AdminPassword`
