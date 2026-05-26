@@ -23,6 +23,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+        "https://sentrytext-production.up.railway.app",
         "http://localhost:5173",
         "http://127.0.0.1:5173",
         "http://localhost:5174",
