@@ -67,8 +67,17 @@ export default function Chat() {
   const fetchMessagesSilent = async (userId) => {
     try {
       const data = await chatService.getMessages(userId);
-      // Only update if lengths differ to avoid rendering jitter
-      setMessages(data);
+      setMessages(prev => {
+        if (prev.length === data.length) {
+          const identical = prev.every((msg, idx) => 
+            msg.Id === data[idx].Id && 
+            msg.ModerationStatus === data[idx].ModerationStatus && 
+            msg.MessageText === data[idx].MessageText
+          );
+          if (identical) return prev;
+        }
+        return data;
+      });
     } catch (err) {
       console.error('Error polling messages:', err);
     }

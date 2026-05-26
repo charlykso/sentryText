@@ -17,7 +17,14 @@ export default function Feed() {
 
   useEffect(() => {
     fetchPosts();
-  }, []);
+    
+    const interval = setInterval(() => {
+      fetchPostsSilent();
+      pollExpandedComments();
+    }, 5000);
+    
+    return () => clearInterval(interval);
+  }, [expandedComments, commentsMap]);
 
   const fetchPosts = async () => {
     try {
@@ -25,6 +32,55 @@ export default function Feed() {
       setPosts(data);
     } catch (err) {
       console.error('Error fetching posts:', err);
+    }
+  };
+
+  const fetchPostsSilent = async () => {
+    try {
+      const data = await feedService.getPosts();
+      setPosts(prev => {
+        if (prev.length === data.length) {
+          const identical = prev.every((post, idx) => 
+            post.Id === data[idx].Id && 
+            post.Likes === data[idx].Likes && 
+            post.Dislikes === data[idx].Dislikes && 
+            post.ModerationStatus === data[idx].ModerationStatus &&
+            post.PostContent === data[idx].PostContent &&
+            post.Username === data[idx].Username
+          );
+          if (identical) return prev;
+        }
+        return data;
+      });
+    } catch (err) {
+      console.error('Error polling posts:', err);
+    }
+  };
+
+  const pollExpandedComments = async () => {
+    const expandedPostIds = Object.keys(expandedComments).filter(postId => expandedComments[postId]);
+    for (const postIdStr of expandedPostIds) {
+      const postId = Number(postIdStr);
+      try {
+        const data = await feedService.getComments(postId);
+        setCommentsMap(prev => {
+          const prevComments = prev[postId] || [];
+          if (prevComments.length === data.length) {
+            const identical = prevComments.every((c, idx) => 
+              c.Id === data[idx].Id && 
+              c.Likes === data[idx].Likes && 
+              c.Dislikes === data[idx].Dislikes && 
+              c.ModerationStatus === data[idx].ModerationStatus &&
+              c.CommentText === data[idx].CommentText &&
+              c.Username === data[idx].Username
+            );
+            if (identical) return prev;
+          }
+          return { ...prev, [postId]: data };
+        });
+      } catch (err) {
+        console.error(`Error polling comments for post ${postId}:`, err);
+      }
     }
   };
 
