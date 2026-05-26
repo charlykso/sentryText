@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import User, Admin
 from app.schemas import UserCreate, UserLogin, AdminLogin
-from app.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
+from app.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES, COOKIE_SECURE, COOKIE_SAMESITE
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -108,8 +108,8 @@ def register_user(user_in: UserCreate, response: Response, db: Session = Depends
         httponly=True,
         max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         expires=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        samesite="lax",
-        secure=False  # Set to True in production (HTTPS)
+        samesite=COOKIE_SAMESITE,
+        secure=COOKIE_SECURE
     )
     
     return {
@@ -133,8 +133,8 @@ def login_user(login_in: UserLogin, response: Response, db: Session = Depends(ge
         httponly=True,
         max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         expires=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        samesite="lax",
-        secure=False
+        samesite=COOKIE_SAMESITE,
+        secure=COOKIE_SECURE
     )
     
     return {
@@ -158,8 +158,8 @@ def login_admin(login_in: AdminLogin, response: Response, db: Session = Depends(
         httponly=True,
         max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         expires=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        samesite="lax",
-        secure=False
+        samesite=COOKIE_SAMESITE,
+        secure=COOKIE_SECURE
     )
     
     return {
@@ -181,5 +181,10 @@ def get_me(current_actor: dict = Depends(get_current_user)):
 @router.post("/logout")
 def logout_user(response: Response):
     """Deletes the HttpOnly session cookie, logging out the actor."""
-    response.delete_cookie(key="access_token", httponly=True, samesite="lax")
+    response.delete_cookie(
+        key="access_token",
+        httponly=True,
+        samesite=COOKIE_SAMESITE,
+        secure=COOKIE_SECURE
+    )
     return {"status": "success"}
