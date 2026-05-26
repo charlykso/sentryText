@@ -153,8 +153,24 @@ def seed_database(token: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or missing seed token")
     
     try:
-        from app.scripts.seed_db import seed
-        seed()
-        return {"status": "success", "message": "Database seeded successfully"}
+        # Resolve the path to the seed script reliably regardless of working directory
+        seed_script_path = os.path.normpath(os.path.abspath(
+            os.path.join(os.path.dirname(__file__), '..', '..', 'scripts', 'seed_db.py')
+        ))
+
+        if not os.path.exists(seed_script_path):
+            raise FileNotFoundError(f"Seed script not found at: {seed_script_path}")
+
+        # Dynamically load the module from file path and call seed()
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("seed_db", seed_script_path)
+        seed_mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(seed_mod)
+
+        if hasattr(seed_mod, 'seed') and callable(seed_mod.seed):
+            seed_mod.seed()
+            return {"status": "success", "message": "Database seeded successfully"}
+        else:
+            raise AttributeError("seed() function not found in seed_db.py")
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Seeding failed: {str(e)}")
