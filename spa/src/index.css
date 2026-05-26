@@ -156,3 +156,27 @@ button, select, a, [role="button"] {
 button:disabled, select:disabled, [role="button"]:disabled {
   cursor: not-allowed !important;
 }
+
+/* Smooth comments dropdown transition */
+.comments-dropdown-container {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+.comments-dropdown-container.open {
+  grid-template-rows: 1fr;
+}
+
+.comments-dropdown-content {
+  min-height: 0;
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.25s ease-out, visibility 0.25s;
+}
+
+.comments-dropdown-container.open .comments-dropdown-content {
+  visibility: visible;
+  opacity: 1;
+}

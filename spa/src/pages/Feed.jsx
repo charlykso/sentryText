@@ -523,134 +523,136 @@ export default function Feed() {
                     </button>
                   </div>
 
-                  {/* Comment Section (Expands) */}
-                  {expandedComments[post.Id] && (
-                    <div className="mt-6 border-t border-dark-850 pt-6 space-y-4">
-                      {/* List of Comments */}
-                      <div className="space-y-3 pl-4 border-l-2 border-dark-800">
-                        {commentsMap[post.Id]?.map((comment) => {
-                          const isCommentBlocked = comment.ModerationStatus === 'Blocked';
-                          return (
-                            <div key={comment.Id} className={`bg-dark-950/40 rounded-2xl p-4 border transition-all duration-200 ${isCommentBlocked ? 'border-red-500/20 bg-red-950/5' : 'border-dark-900'}`}>
-                              <div className="flex items-center justify-between mb-1.5">
-                                <div className="flex items-center gap-2">
-                                  <CornerDownRight className="w-3.5 h-3.5 text-dark-500" />
-                                  <strong className="text-sm text-dark-100 capitalize">{comment.Username}</strong>
-                                  {isCommentBlocked && (
-                                    <span className="text-[9px] font-bold text-red-400 bg-red-500/10 border border-red-500/15 px-1.5 py-0.2 rounded-full ml-1">
-                                      Blocked
-                                    </span>
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  {comment.UserId === currentUserId && editingCommentId !== comment.Id && (
-                                    <div className="flex items-center gap-1">
-                                      <button
-                                        onClick={() => handleStartEditComment(comment)}
-                                        className="p-1 rounded-lg text-dark-400 hover:text-brand-400 hover:bg-dark-900 transition-colors cursor-pointer"
-                                        title="Edit Comment"
-                                      >
-                                        <Pencil className="w-3 h-3" />
-                                      </button>
-                                      <button
-                                        onClick={() => handleDeleteComment(post.Id, comment.Id)}
-                                        className="p-1 rounded-lg text-dark-400 hover:text-red-400 hover:bg-dark-900 transition-colors cursor-pointer"
-                                        title="Delete Comment"
-                                      >
-                                        <Trash2 className="w-3 h-3" />
-                                      </button>
-                                    </div>
-                                  )}
-                                  <span className="text-[10px] text-dark-500">{new Date(comment.Timestamp).toLocaleTimeString()}</span>
-                                </div>
-                              </div>
-
-                              {/* Comment Body / Editing Workspace */}
-                              {editingCommentId === comment.Id ? (
-                                <div className="ml-5 mt-2 space-y-2 bg-dark-900/40 p-3 rounded-xl border border-dark-800">
-                                  <textarea
-                                    rows="2"
-                                    value={editCommentContent}
-                                    onChange={(e) => setEditCommentContent(e.target.value)}
-                                    className="w-full glass-input resize-none text-xs text-dark-100 py-1.5 px-2"
-                                    disabled={savingEdit}
-                                  />
-                                  <div className="flex justify-end gap-1.5 text-[10px]">
-                                    <button
-                                      onClick={handleCancelEditComment}
-                                      disabled={savingEdit}
-                                      className="px-2.5 py-1 rounded-lg border border-dark-800 text-dark-300 hover:bg-dark-900 transition-colors flex items-center gap-1 cursor-pointer"
-                                    >
-                                      <X className="w-3 h-3" />
-                                      <span>Cancel</span>
-                                    </button>
-                                    <button
-                                      onClick={() => handleSaveEditComment(post.Id, comment.Id)}
-                                      disabled={savingEdit || !editCommentContent.trim()}
-                                      className="px-2.5 py-1 rounded-lg bg-brand-600 text-white hover:bg-brand-500 transition-colors flex items-center gap-1 cursor-pointer"
-                                    >
-                                      {savingEdit ? (
-                                        <RefreshCw className="w-3 h-3 animate-spin" />
-                                      ) : (
-                                        <Check className="w-3 h-3" />
-                                      )}
-                                      <span>Save</span>
-                                    </button>
+                  {/* Comment Section (Expands with smooth dropdown transition) */}
+                  <div className={`comments-dropdown-container ${expandedComments[post.Id] ? 'open' : ''}`}>
+                    <div className="comments-dropdown-content">
+                      <div className="mt-6 border-t border-dark-850 pt-6 space-y-4">
+                        {/* List of Comments */}
+                        <div className="space-y-3 pl-4 border-l-2 border-dark-800">
+                          {commentsMap[post.Id]?.map((comment) => {
+                            const isCommentBlocked = comment.ModerationStatus === 'Blocked';
+                            return (
+                              <div key={comment.Id} className={`bg-dark-950/40 rounded-2xl p-4 border transition-all duration-200 ${isCommentBlocked ? 'border-red-500/20 bg-red-950/5' : 'border-dark-900'}`}>
+                                <div className="flex items-center justify-between mb-1.5">
+                                  <div className="flex items-center gap-2">
+                                    <CornerDownRight className="w-3.5 h-3.5 text-dark-500" />
+                                    <strong className="text-sm text-dark-100 capitalize">{comment.Username}</strong>
+                                    {isCommentBlocked && (
+                                      <span className="text-[9px] font-bold text-red-400 bg-red-500/10 border border-red-500/15 px-1.5 py-0.2 rounded-full ml-1">
+                                        Blocked
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    {comment.UserId === currentUserId && editingCommentId !== comment.Id && (
+                                      <div className="flex items-center gap-1">
+                                        <button
+                                          onClick={() => handleStartEditComment(comment)}
+                                          className="p-1 rounded-lg text-dark-400 hover:text-brand-400 hover:bg-dark-900 transition-colors cursor-pointer"
+                                          title="Edit Comment"
+                                        >
+                                          <Pencil className="w-3 h-3" />
+                                        </button>
+                                        <button
+                                          onClick={() => handleDeleteComment(post.Id, comment.Id)}
+                                          className="p-1 rounded-lg text-dark-400 hover:text-red-400 hover:bg-dark-900 transition-colors cursor-pointer"
+                                          title="Delete Comment"
+                                        >
+                                          <Trash2 className="w-3 h-3" />
+                                        </button>
+                                      </div>
+                                    )}
+                                    <span className="text-[10px] text-dark-500">{new Date(comment.Timestamp).toLocaleTimeString()}</span>
                                   </div>
                                 </div>
-                              ) : (
-                                <p className={`text-sm leading-relaxed ml-5 ${isCommentBlocked ? 'text-red-400/80 italic font-mono text-xs' : 'text-dark-200'}`}>{comment.CommentText}</p>
-                              )}
-                              
-                              {/* Comment Reactions */}
-                              {!isCommentBlocked && editingCommentId !== comment.Id && (
-                                <div className="flex items-center gap-4 ml-5 mt-2 text-xs text-dark-450 border-t border-dark-850/50 pt-2">
-                                  <button 
-                                    onClick={() => handleLikeComment(post.Id, comment.Id)}
-                                    className="flex items-center gap-1 hover:text-brand-400 transition-colors cursor-pointer"
-                                  >
-                                    <ThumbsUp className="w-3.5 h-3.5" />
-                                    <span>Like ({comment.Likes || 0})</span>
-                                  </button>
-                                  <button 
-                                    onClick={() => handleDislikeComment(post.Id, comment.Id)}
-                                    className="flex items-center gap-1 hover:text-red-400 transition-colors cursor-pointer"
-                                  >
-                                    <ThumbsDown className="w-3.5 h-3.5" />
-                                    <span>Dislike ({comment.Dislikes || 0})</span>
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
 
-                      {/* Write Comment Form */}
-                      <form onSubmit={(e) => handleCreateComment(e, post.Id)} className="flex gap-2">
-                        <input
-                          required
-                          type="text"
-                          placeholder="Write a correct reply..."
-                          value={newCommentsMap[post.Id] || ''}
-                          onChange={(e) => handleCommentTextChange(post.Id, e.target.value)}
-                          className="flex-1 glass-input py-2 text-sm"
-                          disabled={postLoadingMap[post.Id]}
-                        />
-                        <button
-                          type="submit"
-                          disabled={postLoadingMap[post.Id] || !(newCommentsMap[post.Id] || '').trim()}
-                          className="bg-brand-600 hover:bg-brand-500 text-white rounded-xl px-4 flex items-center justify-center transition-all duration-200 cursor-pointer"
-                        >
-                          {postLoadingMap[post.Id] ? (
-                            <RefreshCw className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <Send className="w-4 h-4" />
-                          )}
-                        </button>
-                      </form>
+                                {/* Comment Body / Editing Workspace */}
+                                {editingCommentId === comment.Id ? (
+                                  <div className="ml-5 mt-2 space-y-2 bg-dark-900/40 p-3 rounded-xl border border-dark-800">
+                                    <textarea
+                                      rows="2"
+                                      value={editCommentContent}
+                                      onChange={(e) => setEditCommentContent(e.target.value)}
+                                      className="w-full glass-input resize-none text-xs text-dark-100 py-1.5 px-2"
+                                      disabled={savingEdit}
+                                    />
+                                    <div className="flex justify-end gap-1.5 text-[10px]">
+                                      <button
+                                        onClick={handleCancelEditComment}
+                                        disabled={savingEdit}
+                                        className="px-2.5 py-1 rounded-lg border border-dark-800 text-dark-300 hover:bg-dark-900 transition-colors flex items-center gap-1 cursor-pointer"
+                                      >
+                                        <X className="w-3 h-3" />
+                                        <span>Cancel</span>
+                                      </button>
+                                      <button
+                                        onClick={() => handleSaveEditComment(post.Id, comment.Id)}
+                                        disabled={savingEdit || !editCommentContent.trim()}
+                                        className="px-2.5 py-1 rounded-lg bg-brand-600 text-white hover:bg-brand-500 transition-colors flex items-center gap-1 cursor-pointer"
+                                      >
+                                        {savingEdit ? (
+                                          <RefreshCw className="w-3 h-3 animate-spin" />
+                                        ) : (
+                                          <Check className="w-3 h-3" />
+                                        )}
+                                        <span>Save</span>
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <p className={`text-sm leading-relaxed ml-5 ${isCommentBlocked ? 'text-red-400/80 italic font-mono text-xs' : 'text-dark-200'}`}>{comment.CommentText}</p>
+                                )}
+                                
+                                {/* Comment Reactions */}
+                                {!isCommentBlocked && editingCommentId !== comment.Id && (
+                                  <div className="flex items-center gap-4 ml-5 mt-2 text-xs text-dark-450 border-t border-dark-850/50 pt-2">
+                                    <button 
+                                      onClick={() => handleLikeComment(post.Id, comment.Id)}
+                                      className="flex items-center gap-1 hover:text-brand-400 transition-colors cursor-pointer"
+                                    >
+                                      <ThumbsUp className="w-3.5 h-3.5" />
+                                      <span>Like ({comment.Likes || 0})</span>
+                                    </button>
+                                    <button 
+                                      onClick={() => handleDislikeComment(post.Id, comment.Id)}
+                                      className="flex items-center gap-1 hover:text-red-400 transition-colors cursor-pointer"
+                                    >
+                                      <ThumbsDown className="w-3.5 h-3.5" />
+                                      <span>Dislike ({comment.Dislikes || 0})</span>
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Write Comment Form */}
+                        <form onSubmit={(e) => handleCreateComment(e, post.Id)} className="flex gap-2">
+                          <input
+                            required
+                            type="text"
+                            placeholder="Write a correct reply..."
+                            value={newCommentsMap[post.Id] || ''}
+                            onChange={(e) => handleCommentTextChange(post.Id, e.target.value)}
+                            className="flex-1 glass-input py-2 text-sm"
+                            disabled={postLoadingMap[post.Id]}
+                          />
+                          <button
+                            type="submit"
+                            disabled={postLoadingMap[post.Id] || !(newCommentsMap[post.Id] || '').trim()}
+                            className="bg-brand-600 hover:bg-brand-500 text-white rounded-xl px-4 flex items-center justify-center transition-all duration-200 cursor-pointer"
+                          >
+                            {postLoadingMap[post.Id] ? (
+                              <RefreshCw className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Send className="w-4 h-4" />
+                            )}
+                          </button>
+                        </form>
+                      </div>
                     </div>
-                  )}
+                  </div>
                 </div>
               );
             })
