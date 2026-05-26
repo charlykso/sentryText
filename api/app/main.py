@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
+from datetime import datetime
+from sqlalchemy import text
 
 from app.database import engine, Base, get_db
 from app.models import Admin
@@ -100,3 +102,43 @@ def read_root():
         "service": "SentryText Cyberbullying Detection & Prevention API Server",
         "documentation": "/docs"
     }
+
+@app.get("/health")
+def health_check():
+    """
+    Health check endpoint for monitoring and load balancers.
+    Returns API status, database connectivity, and ML model status.
+    """
+    health_status = {
+        "status": "healthy",
+        "timestamp": datetime.utcnow().isoformat(),
+        "service": "SentryText",
+        "checks": {
+            "api": "operational",
+            "database": "unknown",
+            "ml_models": "unknown"
+        }
+    }
+    
+    # Check database connectivity
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        health_status["checks"]["database"] = "operational"
+    except Exception as e:
+        health_status["checks"]["database"] = f"error: {str(e)}"
+        health_status["status"] = "degraded"
+    
+    # Check ML models
+    try:
+        from app.ml_engine.classifier import vectorizer, lr_model, svm_model
+        if vectorizer is not None and lr_model is not None and svm_model is not None:
+            health_status["checks"]["ml_models"] = "operational"
+        else:
+            health_status["checks"]["ml_models"] = "not loaded"
+            health_status["status"] = "degraded"
+    except Exception as e:
+        health_status["checks"]["ml_models"] = f"error: {str(e)}"
+        health_status["status"] = "degraded"
+    
+    return health_status
