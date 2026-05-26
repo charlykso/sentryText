@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
+import os
 
 from app.database import get_db
 from app.models import User, Post, Comment, Message, PredictionResult
@@ -140,3 +141,20 @@ def delete_user(user_id: int, db: Session = Depends(get_db), current_admin: dict
     db.delete(user)
     db.commit()
     return {"status": "success", "message": f"User '{user.Username}' and all their content purged."}
+
+@router.post("/seed-db")
+def seed_database(token: str, db: Session = Depends(get_db)):
+    """
+    Seed the database with initial test data.
+    Requires SEED_TOKEN for security.
+    """
+    seed_token = os.getenv("SEED_TOKEN", "")
+    if not seed_token or token != seed_token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or missing seed token")
+    
+    try:
+        from app.scripts.seed_db import seed
+        seed()
+        return {"status": "success", "message": "Database seeded successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Seeding failed: {str(e)}")
