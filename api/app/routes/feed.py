@@ -21,7 +21,7 @@ def get_posts(db: Session = Depends(get_db), current_actor: dict = Depends(get_c
         username = user.Username if user else "Deleted User"
         
         content = post.PostContent
-        if post.ModerationStatus == 'Blocked':
+        if post.ModerationStatus == 'Blocked' and post.UserId != current_actor["user_id"]:
             content = "🚫 This post was blocked by the SentryText proactive safety engine."
             
         likes_count = db.query(PostReaction).filter(PostReaction.PostId == post.Id, PostReaction.Type == 'like').count()
@@ -112,7 +112,7 @@ def get_comments(post_id: int, db: Session = Depends(get_db), current_actor: dic
         username = user.Username if user else "Deleted User"
         
         content = comment.CommentText
-        if comment.ModerationStatus == 'Blocked':
+        if comment.ModerationStatus == 'Blocked' and comment.UserId != current_actor["user_id"]:
             content = "🚫 Comment blocked by SentryText."
             
         response.append({
@@ -398,5 +398,152 @@ def dislike_comment(comment_id: int, db: Session = Depends(get_db), current_acto
     dislikes_count = db.query(CommentReaction).filter(CommentReaction.CommentId == comment_id, CommentReaction.Type == 'dislike').count()
     
     return {"status": "success", "likes": likes_count, "dislikes": dislikes_count}
+
+@router.put("/posts/{post_id}")
+def update_post(post_id: int, post_in: PostCreate, db: Session = Depends(get_db), current_actor: dict = Depends(get_current_user)):
+    """Update a post. Requires ownership and runs proactive screening."""
+    user_id = current_actor["user_id"]
+    post = db.query(Post).filter(Post.Id == post_id).first()
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found.")
+    if post.UserId != user_id:
+        raise HTTPException(status_code=403, detail="You do not have permission to edit this post.")
+        
+    text = post_in.PostContent.strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="Post content cannot be empty.")
+        
+    # Proactive screening
+    verdict = predict_comment(text)
+    moderation_status = verdict["moderation_status"]
+    
+    post.PostContent = text
+    post.ModerationStatus = moderation_status
+    db.commit()
+    db.refresh(post)
+    
+    # Save prediction result log
+    result_log = PredictionResult(
+        ContentId=post.Id,
+        ContentType='post',
+        Classification=verdict["classification"],
+        ConfidenceScore=verdict["confidence_score"],
+        ModerationStatus=moderation_status
+    )
+    db.add(result_log)
+    db.commit()
+    
+    if moderation_status == 'Blocked':
+        return {
+            "moderation_status": "Blocked",
+            "message": "Warning: Harmful Content Detected. Please modify your message before posting.",
+            "verdict": verdict,
+            "post_id": post.Id
+        }
+        
+    likes_count = db.query(PostReaction).filter(PostReaction.PostId == post.Id, PostReaction.Type == 'like').count()
+    dislikes_count = db.query(PostReaction).filter(PostReaction.PostId == post.Id, PostReaction.Type == 'dislike').count()
+    
+    return {
+        "moderation_status": "Approved",
+        "post": {
+            "Id": post.Id,
+            "UserId": post.UserId,
+            "Username": current_actor["name"],
+            "PostContent": post.PostContent,
+            "ModerationStatus": post.ModerationStatus,
+            "Likes": likes_count,
+            "Dislikes": dislikes_count,
+            "Timestamp": post.Timestamp
+        }
+    }
+
+@router.delete("/posts/{post_id}")
+def delete_post(post_id: int, db: Session = Depends(get_db), current_actor: dict = Depends(get_current_user)):
+    """Delete a post. Requires ownership."""
+    user_id = current_actor["user_id"]
+    post = db.query(Post).filter(Post.Id == post_id).first()
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found.")
+    if post.UserId != user_id:
+        raise HTTPException(status_code=403, detail="You do not have permission to delete this post.")
+        
+    db.delete(post)
+    db.commit()
+    return {"status": "success", "message": "Post successfully deleted."}
+
+@router.put("/comments/{comment_id}")
+def update_comment(comment_id: int, comment_in: CommentCreate, db: Session = Depends(get_db), current_actor: dict = Depends(get_current_user)):
+    """Update a comment. Requires ownership and runs proactive screening."""
+    user_id = current_actor["user_id"]
+    comment = db.query(Comment).filter(Comment.Id == comment_id).first()
+    if not comment:
+        raise HTTPException(status_code=404, detail="Comment not found.")
+    if comment.UserId != user_id:
+        raise HTTPException(status_code=403, detail="You do not have permission to edit this comment.")
+        
+    text = comment_in.CommentText.strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="Comment content cannot be empty.")
+        
+    # Proactive screening
+    verdict = predict_comment(text)
+    moderation_status = verdict["moderation_status"]
+    
+    comment.CommentText = text
+    comment.ModerationStatus = moderation_status
+    db.commit()
+    db.refresh(comment)
+    
+    # Save prediction result log
+    result_log = PredictionResult(
+        ContentId=comment.Id,
+        ContentType='comment',
+        Classification=verdict["classification"],
+        ConfidenceScore=verdict["confidence_score"],
+        ModerationStatus=moderation_status
+    )
+    db.add(result_log)
+    db.commit()
+    
+    if moderation_status == 'Blocked':
+        return {
+            "moderation_status": "Blocked",
+            "message": "Warning: Harmful Comment Detected. Please modify your comment before posting.",
+            "verdict": verdict,
+            "comment_id": comment.Id
+        }
+        
+    likes_count = db.query(CommentReaction).filter(CommentReaction.CommentId == comment.Id, CommentReaction.Type == 'like').count()
+    dislikes_count = db.query(CommentReaction).filter(CommentReaction.CommentId == comment.Id, CommentReaction.Type == 'dislike').count()
+    
+    return {
+        "moderation_status": "Approved",
+        "comment": {
+            "Id": comment.Id,
+            "PostId": comment.PostId,
+            "UserId": comment.UserId,
+            "Username": current_actor["name"],
+            "CommentText": comment.CommentText,
+            "ModerationStatus": comment.ModerationStatus,
+            "Likes": likes_count,
+            "Dislikes": dislikes_count,
+            "Timestamp": comment.Timestamp
+        }
+    }
+
+@router.delete("/comments/{comment_id}")
+def delete_comment(comment_id: int, db: Session = Depends(get_db), current_actor: dict = Depends(get_current_user)):
+    """Delete a comment. Requires ownership."""
+    user_id = current_actor["user_id"]
+    comment = db.query(Comment).filter(Comment.Id == comment_id).first()
+    if not comment:
+        raise HTTPException(status_code=404, detail="Comment not found.")
+    if comment.UserId != user_id:
+        raise HTTPException(status_code=403, detail="You do not have permission to delete this comment.")
+        
+    db.delete(comment)
+    db.commit()
+    return {"status": "success", "message": "Comment successfully deleted."}
 
 

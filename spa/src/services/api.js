@@ -92,6 +92,22 @@ export const feedService = {
     const response = await api.post(`/feed/comments/${commentId}/dislike`)
     return response.data
   },
+  updatePost: async (postId, postContent) => {
+    const response = await api.put(`/feed/posts/${postId}`, { PostContent: postContent })
+    return response.data
+  },
+  deletePost: async (postId) => {
+    const response = await api.delete(`/feed/posts/${postId}`)
+    return response.data
+  },
+  updateComment: async (commentId, commentText) => {
+    const response = await api.put(`/feed/comments/${commentId}`, { CommentText: commentText })
+    return response.data
+  },
+  deleteComment: async (commentId) => {
+    const response = await api.delete(`/feed/comments/${commentId}`)
+    return response.data
+  },
 }
 
 export const chatService = {
