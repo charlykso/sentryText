@@ -115,6 +115,9 @@ def get_comments(post_id: int, db: Session = Depends(get_db), current_actor: dic
         if comment.ModerationStatus == 'Blocked' and comment.UserId != current_actor["user_id"]:
             content = "🚫 Comment blocked by SentryText."
             
+        likes_count = db.query(CommentReaction).filter(CommentReaction.CommentId == comment.Id, CommentReaction.Type == 'like').count()
+        dislikes_count = db.query(CommentReaction).filter(CommentReaction.CommentId == comment.Id, CommentReaction.Type == 'dislike').count()
+        
         response.append({
             "Id": comment.Id,
             "PostId": comment.PostId,
@@ -122,8 +125,8 @@ def get_comments(post_id: int, db: Session = Depends(get_db), current_actor: dic
             "Username": username,
             "CommentText": content,
             "ModerationStatus": comment.ModerationStatus,
-            "Likes": comment.Likes,
-            "Dislikes": comment.Dislikes,
+            "Likes": likes_count,
+            "Dislikes": dislikes_count,
             "Timestamp": comment.Timestamp
         })
     return response
