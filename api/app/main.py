@@ -24,7 +24,6 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://sentrytext-production.up.railway.app",
-        "https://sentrytext-production.up.railway.app/api",
         "http://localhost:5173",
         "http://127.0.0.1:5173",
         "http://localhost:5174",
