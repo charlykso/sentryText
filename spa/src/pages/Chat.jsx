@@ -188,7 +188,7 @@ export default function Chat() {
                   <RefreshCw className="w-5 h-5 animate-spin text-brand-500" /> Fetching secure messages...
                 </div>
               ) : messages.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-center text-dark-500 p-8">
+                <div className="flex-1 flex flex-col items-center justify-center text-center text-dark-500 p-8">
                   <div className="w-12 h-12 rounded-2xl bg-dark-900 border border-dark-800 flex items-center justify-center mb-3">
                     <MessageSquare className="w-5 h-5 text-dark-400" />
                   </div>
@@ -248,7 +248,7 @@ export default function Chat() {
             </form>
           </>
         ) : (
-          <div className="h-full flex flex-col items-center justify-center text-center text-dark-500 p-8">
+          <div className="flex-1 flex flex-col items-center justify-center text-center text-dark-500 p-8">
             <div className="w-16 h-16 rounded-3xl bg-dark-900 border border-dark-850 flex items-center justify-center mb-4">
               <MessageSquare className="w-8 h-8 text-dark-400" />
             </div>
