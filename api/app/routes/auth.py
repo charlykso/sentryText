@@ -116,7 +116,8 @@ def register_user(user_in: UserCreate, response: Response, db: Session = Depends
         max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         expires=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         samesite=COOKIE_SAMESITE,
-        secure=COOKIE_SECURE
+        secure=COOKIE_SECURE,
+        path="/"
     )
     
     return {
@@ -142,7 +143,8 @@ def login_user(login_in: UserLogin, response: Response, db: Session = Depends(ge
         max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         expires=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         samesite=COOKIE_SAMESITE,
-        secure=COOKIE_SECURE
+        secure=COOKIE_SECURE,
+        path="/"
     )
     
     return {
@@ -168,7 +170,8 @@ def login_admin(login_in: AdminLogin, response: Response, db: Session = Depends(
         max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         expires=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         samesite=COOKIE_SAMESITE,
-        secure=COOKIE_SECURE
+        secure=COOKIE_SECURE,
+        path="/"
     )
     
     return {
@@ -195,6 +198,7 @@ def logout_user(response: Response):
         key="access_token",
         httponly=True,
         samesite=COOKIE_SAMESITE,
-        secure=COOKIE_SECURE
+        secure=COOKIE_SECURE,
+        path="/"
     )
     return {"status": "success"}
