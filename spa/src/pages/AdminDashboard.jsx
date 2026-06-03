@@ -158,16 +158,16 @@ export default function AdminDashboard() {
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-dark-850 gap-2">
+      <div className="flex flex-wrap border-b border-dark-850 gap-2 overflow-x-auto">
         <button
           onClick={() => setActiveTab('telemetry')}
-          className={`flex items-center gap-2 px-6 py-3 border-b-2 font-semibold transition-all duration-200 text-sm ${activeTab === 'telemetry' ? 'border-brand-500 text-brand-400' : 'border-transparent text-dark-400 hover:text-dark-100'}`}
+          className={`flex items-center gap-2 px-4 sm:px-6 py-3 border-b-2 font-semibold transition-all duration-200 text-xs sm:text-sm ${activeTab === 'telemetry' ? 'border-brand-500 text-brand-400' : 'border-transparent text-dark-400 hover:text-dark-100'}`}
         >
           <Cpu className="w-4 h-4" /> Telemetry & Audit Logs
         </button>
         <button
           onClick={() => setActiveTab('users')}
-          className={`flex items-center gap-2 px-6 py-3 border-b-2 font-semibold transition-all duration-200 text-sm ${activeTab === 'users' ? 'border-brand-500 text-brand-400' : 'border-transparent text-dark-400 hover:text-dark-100'}`}
+          className={`flex items-center gap-2 px-4 sm:px-6 py-3 border-b-2 font-semibold transition-all duration-200 text-xs sm:text-sm ${activeTab === 'users' ? 'border-brand-500 text-brand-400' : 'border-transparent text-dark-400 hover:text-dark-100'}`}
         >
           <Users className="w-4 h-4" /> User Directory
         </button>
@@ -290,10 +290,10 @@ export default function AdminDashboard() {
                   <tr className="bg-dark-900/60 border-b border-dark-850 text-xs font-semibold text-dark-400 uppercase tracking-wider">
                     <th className="p-4">Type</th>
                     <th className="p-4">Raw Text Snippet</th>
-                    <th className="p-4">ML Label</th>
-                    <th className="p-4">Confidence</th>
+                    <th className="p-4 hidden md:table-cell">ML Label</th>
+                    <th className="p-4 hidden md:table-cell">Confidence</th>
                     <th className="p-4">Verdict Action</th>
-                    <th className="p-4"><span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> Date & Time</span></th>
+                    <th className="p-4 hidden sm:table-cell"><span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> Date & Time</span></th>
                   </tr>
                 </thead>
                 
@@ -325,18 +325,18 @@ export default function AdminDashboard() {
                               {log.RawText}
                             </span>
                           </td>
-                          <td className="p-4">
+                          <td className="p-4 hidden md:table-cell">
                             <span className={`font-semibold ${log.Classification === 'Harmful' ? 'text-red-400' : 'text-green-400'}`}>
                               {log.Classification}
                             </span>
                           </td>
-                          <td className="p-4 font-mono text-xs font-semibold">{log.ConfidenceScore}%</td>
+                          <td className="p-4 hidden md:table-cell font-mono text-xs font-semibold">{log.ConfidenceScore}%</td>
                           <td className="p-4">
                             <span className={`text-xs font-bold ${isBlocked ? 'text-red-500' : 'text-green-500'}`}>
                               {log.ModerationStatus}
                             </span>
                           </td>
-                          <td className="p-4 text-xs text-dark-400 font-medium">
+                          <td className="p-4 hidden sm:table-cell text-xs text-dark-400 font-medium">
                             {new Date(log.Timestamp).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
                           </td>
                         </tr>
@@ -372,12 +372,12 @@ export default function AdminDashboard() {
               <thead>
                 <tr className="bg-dark-900/60 border-b border-dark-850 text-xs font-semibold text-dark-400 uppercase tracking-wider">
                   <th className="p-4">User</th>
-                  <th className="p-4">Email</th>
-                  <th className="p-4 text-center">Gender</th>
-                  <th className="p-4 text-center">Posts</th>
-                  <th className="p-4 text-center">Comments</th>
+                  <th className="p-4 hidden md:table-cell">Email</th>
+                  <th className="p-4 text-center hidden lg:table-cell">Gender</th>
+                  <th className="p-4 text-center hidden sm:table-cell">Posts</th>
+                  <th className="p-4 text-center hidden sm:table-cell">Comments</th>
                   <th className="p-4 text-center">Violations</th>
-                  <th className="p-4"><span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> Registered Date</span></th>
+                  <th className="p-4 hidden md:table-cell"><span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> Registered Date</span></th>
                   <th className="p-4 text-center">Actions</th>
                 </tr>
               </thead>
@@ -408,16 +408,16 @@ export default function AdminDashboard() {
                             <span className="font-semibold text-dark-100 capitalize">{u.Username}</span>
                           </div>
                         </td>
-                        <td className="p-4 text-dark-300 font-mono text-xs">{u.Email}</td>
-                        <td className="p-4 text-center text-xs text-dark-400 font-semibold">{u.Gender || 'N/A'}</td>
-                        <td className="p-4 text-center font-mono font-semibold">{u.PostCount}</td>
-                        <td className="p-4 text-center font-mono font-semibold">{u.CommentCount}</td>
+                        <td className="p-4 hidden md:table-cell text-dark-300 font-mono text-xs">{u.Email}</td>
+                        <td className="p-4 text-center text-xs text-dark-400 font-semibold hidden lg:table-cell">{u.Gender || 'N/A'}</td>
+                        <td className="p-4 text-center font-mono font-semibold hidden sm:table-cell">{u.PostCount}</td>
+                        <td className="p-4 text-center font-mono font-semibold hidden sm:table-cell">{u.CommentCount}</td>
                         <td className="p-4 text-center">
                           <span className={`inline-block font-mono font-bold px-2 py-0.5 rounded-full text-xs ${hasViolations ? 'bg-red-500/10 text-red-500 border border-red-500/20' : 'bg-green-500/10 text-green-500'}`}>
                             {u.ViolationCount}
                           </span>
                         </td>
-                        <td className="p-4 text-xs text-dark-400 font-medium">
+                        <td className="p-4 text-xs text-dark-400 font-medium hidden md:table-cell">
                           {new Date(u.DateRegistered).toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' })}
                         </td>
                         <td className="p-4 text-center">

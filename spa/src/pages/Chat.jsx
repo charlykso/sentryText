@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MessageSquare, Send, User, ShieldAlert, AlertTriangle, Cpu, RefreshCw } from 'lucide-react';
+import { MessageSquare, Send, User, ShieldAlert, AlertTriangle, Cpu, RefreshCw, ArrowLeft } from 'lucide-react';
 import { chatService } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -119,9 +119,9 @@ export default function Chat() {
   const currentUserId = user?.id || 0;
 
   return (
-    <div className="glass-panel rounded-3xl overflow-hidden h-[75vh] flex grid grid-cols-1 md:grid-cols-4 border border-dark-800/80">
+    <div className="glass-panel rounded-3xl overflow-hidden h-[75vh] grid grid-cols-1 md:grid-cols-4 border border-dark-800/80">
       {/* Left Sidebar - Chat Users List */}
-      <div className="md:col-span-1 border-r border-dark-850 flex flex-col bg-dark-900/30">
+      <div className={`md:col-span-1 border-r border-dark-850 flex flex-col bg-dark-900/30 ${selectedUser ? 'hidden md:flex' : 'flex'}`}>
         <div className="p-4 border-b border-dark-850 flex items-center gap-2">
           <MessageSquare className="w-5 h-5 text-brand-500" />
           <h3 className="font-outfit font-bold text-dark-100 text-base">Conversations</h3>
@@ -155,12 +155,20 @@ export default function Chat() {
       </div>
 
       {/* Right Column - Chat Room */}
-      <div className="md:col-span-3 flex flex-col bg-dark-950/20 h-full">
+      <div className={`md:col-span-3 flex flex-col bg-dark-950/20 h-full ${selectedUser ? 'flex' : 'hidden md:flex'}`}>
         {selectedUser ? (
           <>
             {/* Active User Header */}
             <div className="p-4 border-b border-dark-850 flex items-center justify-between bg-dark-900/25">
               <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setSelectedUser(null)}
+                  className="md:hidden p-1.5 rounded-lg text-dark-400 hover:text-dark-100 hover:bg-dark-900/60 transition-colors mr-1 cursor-pointer"
+                  title="Back to conversations"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
                 <div className="w-9 h-9 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center font-bold text-brand-400 capitalize">
                   {selectedUser.Username.substring(0, 2)}
                 </div>

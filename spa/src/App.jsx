@@ -86,7 +86,7 @@ const NavBar = () => {
         <span className="font-outfit font-extrabold text-xl tracking-tight text-gradient font-sans">SentryText</span>
       </Link>
       
-      <div className="flex items-center gap-2 md:gap-3">
+      <div className="hidden md:flex items-center gap-2 md:gap-3">
         <Link to="/feed" className={`flex items-center gap-1.5 px-3 md:px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${isActive('/feed') ? 'bg-brand-600/10 text-brand-400 border border-brand-500/20' : 'text-dark-300 hover:text-dark-100 hover:bg-dark-900/60'}`}>
           <Newspaper className="w-4 h-4" /> <span className="hidden sm:inline">Social Feed</span>
         </Link>
@@ -112,13 +112,41 @@ const NavBar = () => {
   );
 };
 
+const MobileBottomBar = () => {
+  const location = useLocation();
+  const { user } = useAuth();
+  const role = user?.role;
+  
+  if (!user || role === 'admin') return null;
+  
+  const isActive = (path) => location.pathname === path;
+  
+  return (
+    <div className="md:hidden fixed bottom-0 left-0 right-0 z-45 bg-dark-900/80 backdrop-blur-lg border-t border-dark-800/80 px-4 py-2 flex items-center justify-around shadow-2xl">
+      <Link to="/feed" className={`flex flex-col items-center gap-1 px-3 py-1 rounded-xl text-[10px] font-bold transition-all duration-205 ${isActive('/feed') ? 'text-brand-400' : 'text-dark-400 hover:text-dark-200'}`}>
+        <Newspaper className="w-5 h-5" /> <span>Feed</span>
+      </Link>
+      <Link to="/chat" className={`flex flex-col items-center gap-1 px-3 py-1 rounded-xl text-[10px] font-bold transition-all duration-205 ${isActive('/chat') ? 'text-brand-400' : 'text-dark-400 hover:text-dark-200'}`}>
+        <MessageSquare className="w-5 h-5" /> <span>Chat</span>
+      </Link>
+      <Link to="/auditor" className={`flex flex-col items-center gap-1 px-3 py-1 rounded-xl text-[10px] font-bold transition-all duration-205 ${isActive('/auditor') ? 'text-brand-400' : 'text-dark-400 hover:text-dark-200'}`}>
+        <Activity className="w-5 h-5" /> <span>Auditor</span>
+      </Link>
+      <Link to="/safety" className={`flex flex-col items-center gap-1 px-3 py-1 rounded-xl text-[10px] font-bold transition-all duration-205 ${isActive('/safety') ? 'text-brand-400' : 'text-dark-400 hover:text-dark-200'}`}>
+        <Info className="w-5 h-5" /> <span>Safety</span>
+      </Link>
+    </div>
+  );
+};
+
 const MainLayout = ({ children }) => {
   return (
     <div className="flex flex-col min-h-screen bg-dark-950">
       <NavBar />
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 lg:p-8 animate-fadeIn">
+      <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 lg:p-8 pb-24 md:pb-6 lg:pb-8 animate-fadeIn">
         {children}
       </main>
+      <MobileBottomBar />
     </div>
   );
 };
