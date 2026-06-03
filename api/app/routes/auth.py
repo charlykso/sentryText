@@ -32,10 +32,17 @@ def create_access_token(data: dict) -> str:
 
 def get_current_user(request: Request, db: Session = Depends(get_db)):
     """
-    FastAPI security dependency. Decodes and verifies incoming HttpOnly cookie.
+    FastAPI security dependency. Decodes and verifies incoming HttpOnly cookie or Authorization header.
     Returns the actor payload: user_id, email, name, and role.
     """
     token = request.cookies.get("access_token")
+    
+    # Fallback to Authorization header if cookie is missing
+    if not token:
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            token = auth_header.split(" ")[1]
+            
     if not token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -115,7 +122,8 @@ def register_user(user_in: UserCreate, response: Response, db: Session = Depends
     return {
         "status": "success",
         "role": "user",
-        "name": new_user.Username
+        "name": new_user.Username,
+        "token": access_token
     }
 
 @router.post("/login")
@@ -140,7 +148,8 @@ def login_user(login_in: UserLogin, response: Response, db: Session = Depends(ge
     return {
         "status": "success",
         "role": "user",
-        "name": user.Username
+        "name": user.Username,
+        "token": access_token
     }
 
 @router.post("/admin/login")
@@ -165,7 +174,8 @@ def login_admin(login_in: AdminLogin, response: Response, db: Session = Depends(
     return {
         "status": "success",
         "role": "admin",
-        "name": admin.AdminName
+        "name": admin.AdminName,
+        "token": access_token
     }
 
 @router.get("/me")

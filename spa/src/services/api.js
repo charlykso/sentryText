@@ -11,6 +11,20 @@ const api = axios.create({
   withCredentials: true,
 })
 
+// Request interceptor to handle authorization headers (e.g. for Safari/iOS compatibility)
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('sentrytext_token')
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
+    return config
+  },
+  (error) => {
+    return Promise.reject(error)
+  }
+)
+
 // Response interceptor to handle authorization failures
 api.interceptors.response.use(
   (response) => response,
@@ -27,6 +41,9 @@ export const authService = {
       Password: password,
       Gender: gender,
     })
+    if (response.data && response.data.token) {
+      localStorage.setItem('sentrytext_token', response.data.token)
+    }
     return response.data
   },
   login: async (email, password) => {
@@ -34,6 +51,9 @@ export const authService = {
       Email: email,
       Password: password,
     })
+    if (response.data && response.data.token) {
+      localStorage.setItem('sentrytext_token', response.data.token)
+    }
     return response.data
   },
   adminLogin: async (email, password) => {
@@ -41,10 +61,14 @@ export const authService = {
       Email: email,
       Password: password,
     })
+    if (response.data && response.data.token) {
+      localStorage.setItem('sentrytext_token', response.data.token)
+    }
     return response.data
   },
   logout: async () => {
     const response = await api.post('/auth/logout')
+    localStorage.removeItem('sentrytext_token')
     return response.data
   },
   getMe: async () => {
