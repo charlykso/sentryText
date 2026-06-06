@@ -13,3 +13,4 @@ nltk==3.8.1
 torch
 transformers
 sentencepiece
+requests==2.31.0

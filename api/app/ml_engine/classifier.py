@@ -218,7 +218,15 @@ def load_models():
     # 2. Load Transformer model if not loaded
     if not transformer_loaded:
         try:
-            if os.path.exists(transformer_path) and any(f.startswith('config.json') for f in os.listdir(transformer_path)):
+            weights_exist = False
+            if os.path.exists(transformer_path):
+                files = os.listdir(transformer_path)
+                has_config = any(f.startswith('config.json') for f in files)
+                has_weights = any(f in ('model.safetensors', 'pytorch_model.bin') for f in files)
+                if has_config and has_weights:
+                    weights_exist = True
+            
+            if weights_exist:
                 from transformers import AutoTokenizer, AutoModelForSequenceClassification
                 transformer_tokenizer = AutoTokenizer.from_pretrained(transformer_path)
                 transformer_model = AutoModelForSequenceClassification.from_pretrained(transformer_path)
@@ -230,7 +238,7 @@ def load_models():
                     print("SentryText Transformer model validation failed.")
                     transformer_loaded = False
             else:
-                print("SentryText Transformer model not found on disk. Will use baseline models as primary/fallback.")
+                print("SentryText Transformer model weights not found on disk. Will use baseline models as primary/fallback.")
                 transformer_loaded = False
         except Exception as e:
             print(f"SentryText error loading Transformer model: {e}. Will use baseline models as primary/fallback.")

@@ -79,3 +79,14 @@ We verified SentryText's compilation and build integrity.
   - Generated output bundles under `dist/` successfully (Vite v8).
 * **FastAPI Server Compilation:**
   - Verified syntax compatibility of python files (`app/routes/admin.py`, `app/routes/feed.py`, `app/routes/chat.py` and `app/main.py`) which compiled with exit code 0.
+
+---
+
+## 3. Production Log Error Fixes (June 2026)
+
+We fixed two critical issues reported in production logs:
+1. **ModuleNotFoundError on `requests`:**
+   - Added `requests==2.31.0` to [requirements.txt](file:///c:/work/CyberBullying-Detector/api/requirements.txt) to support Hugging Face Inference API calls.
+2. **Missing Transformer Model Weights Exception:**
+   - Modified [classifier.py](file:///c:/work/CyberBullying-Detector/api/app/ml_engine/classifier.py) to check for the presence of model weight files (`model.safetensors` or `pytorch_model.bin`) in the directory before attempting local Transformer model instantiation. This avoids printing a noisy traceback when large weights are omitted/gitignored.
+
