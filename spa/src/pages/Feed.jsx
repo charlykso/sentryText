@@ -726,6 +726,12 @@ export default function Feed() {
                   <strong className="text-dark-100 text-lg font-outfit block mt-0.5">{warningData.verdict.confidence_score}%</strong>
                 </div>
                 <div className="bg-dark-900/50 border border-dark-800 rounded-2xl p-4 col-span-2 sm:col-span-1">
+                  <span className="text-xs text-dark-400 block">Transformer (DistilBERT)</span>
+                  <span className={`text-sm font-semibold block mt-1 ${warningData.verdict.transformer_classification === 'Harmful' ? 'text-red-400' : 'text-green-400'}`}>
+                    {warningData.verdict.transformer_classification || 'Non-Harmful'} ({warningData.verdict.transformer_confidence || 100}%)
+                  </span>
+                </div>
+                <div className="bg-dark-900/50 border border-dark-800 rounded-2xl p-4 col-span-2 sm:col-span-1">
                   <span className="text-xs text-dark-400 block">Logistic Regression</span>
                   <span className={`text-sm font-semibold block mt-1 ${warningData.verdict.lr_classification === 'Harmful' ? 'text-red-400' : 'text-green-400'}`}>
                     {warningData.verdict.lr_classification} ({warningData.verdict.lr_confidence}%)
