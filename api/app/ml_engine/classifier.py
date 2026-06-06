@@ -19,6 +19,62 @@ transformer_tokenizer = None
 transformer_model = None
 transformer_loaded = False
 
+# Hugging Face Inference API Configurations (production serverless hosting)
+USE_HF_INFERENCE_API = os.getenv("USE_HF_INFERENCE_API", "False").lower() in ("true", "1", "yes")
+HF_API_TOKEN = os.getenv("HF_API_TOKEN", "")
+HF_MODEL_ID = os.getenv("HF_MODEL_ID", "distilbert-base-multilingual-cased")
+
+def query_hf_inference_api(text: str) -> dict:
+    """
+    Sends a request to the Hugging Face Free Serverless Inference API.
+    Returns prediction label and confidence score.
+    """
+    import requests
+    api_url = f"https://api-inference.huggingface.co/models/{HF_MODEL_ID}"
+    headers = {}
+    if HF_API_TOKEN:
+        headers["Authorization"] = f"Bearer {HF_API_TOKEN}"
+        
+    payload = {
+        "inputs": text,
+        "options": {"wait_for_model": True}
+    }
+    
+    # Set a 5 second timeout to prevent blocking the request chain
+    response = requests.post(api_url, headers=headers, json=payload, timeout=5.0)
+    response.raise_for_status()
+    result = response.json()
+    
+    # Parse standard Hugging Face sequence classification response
+    # e.g., [[{"label": "LABEL_0", "score": 0.9}, {"label": "LABEL_1", "score": 0.1}]]
+    if isinstance(result, list):
+        if len(result) > 0 and isinstance(result[0], list):
+            predictions = result[0]
+        else:
+            predictions = result
+            
+        prob_safe = 0.5
+        prob_harmful = 0.5
+        
+        for p in predictions:
+            label = str(p.get("label", "")).upper()
+            score = float(p.get("score", 0.5))
+            if label in ("LABEL_1", "HARMFUL", "TOXIC", "1"):
+                prob_harmful = score
+            elif label in ("LABEL_0", "NON-HARMFUL", "SAFE", "0"):
+                prob_safe = score
+                
+        pred_label = 1 if prob_harmful > prob_safe else 0
+        final_class = "Harmful" if pred_label == 1 else "Non-Harmful"
+        final_conf = prob_harmful if pred_label == 1 else prob_safe
+        return {
+            "classification": final_class,
+            "confidence": round(final_conf * 100.0, 2)
+        }
+    else:
+        raise ValueError(f"Unexpected HF Inference API response format: {result}")
+
+
 def validate_models() -> bool:
     """
     Validates that the loaded baseline models are working and compatible.
@@ -215,14 +271,13 @@ def fallback_moderation(text: str) -> dict:
 
 def predict_comment(text: str) -> dict:
     """
-    Predicts if a user input string contains cyberbullying using the fine-tuned local
-    multilingual Transformer (DistilBERT) with fallbacks and telemetry for Logistic Regression and SVM.
+    Predicts if a user input string contains cyberbullying using either the Hugging Face Free Inference API
+    (primary serverless) or a local fine-tuned Transformer (fallback) with baseline SVM/LR telemetry.
     """
     try:
-        # Load all models (baselines and transformer)
-        # Note: If transformer fails or is not trained, load_models still returns True if baselines are ready
-        if not load_models():
-            return fallback_moderation(text)
+        # Load baseline models and local transformer if available
+        # Note: True is returned if baseline models are ready
+        baselines_ok = load_models()
         
         # 1. Evaluate baseline models if they are loaded (for comparative research/telemetry)
         lr_class = "Non-Harmful"
@@ -234,8 +289,7 @@ def predict_comment(text: str) -> dict:
         
         cleaned = clean_text(text)
         
-        # We only predict with baselines if we have a non-empty string and models are loaded
-        if cleaned.strip() and vectorizer and lr_model and svm_model:
+        if baselines_ok and cleaned.strip() and vectorizer and lr_model and svm_model:
             features = vectorizer.transform([cleaned])
             
             # Logistic Regression Prediction
@@ -250,15 +304,27 @@ def predict_comment(text: str) -> dict:
             svm_class = "Harmful" if svm_pred_label == 1 else "Non-Harmful"
             svm_conf = float(svm_prob[svm_pred_label] * 100.0)
             
-        # 2. Evaluate Transformer model (Primary engine)
+        # 2. Evaluate Transformer model (Primary engine: API preferred, local fallback)
         transformer_class = "Non-Harmful"
         transformer_conf = 100.0
         transformer_pred_label = 0
+        transformer_active = False
         
-        if transformer_loaded and transformer_tokenizer and transformer_model:
+        # Attempt Remote Inference API first (zero server footprint/memory optimization)
+        if USE_HF_INFERENCE_API:
+            try:
+                api_result = query_hf_inference_api(text)
+                transformer_class = api_result["classification"]
+                transformer_conf = api_result["confidence"]
+                transformer_pred_label = 1 if transformer_class == "Harmful" else 0
+                transformer_active = True
+            except Exception as api_err:
+                print(f"SentryText: HF Inference API call failed: {api_err}. Trying local model fallback.")
+                
+        # Attempt Local Model fallback if API is disabled or failed, and local model is loaded
+        if not transformer_active and transformer_loaded and transformer_tokenizer and transformer_model:
             try:
                 import torch
-                # Tokenize raw, original text to keep full context/negation/sarcasm
                 inputs = transformer_tokenizer(
                     text,
                     truncation=True,
@@ -267,7 +333,6 @@ def predict_comment(text: str) -> dict:
                     return_tensors="pt"
                 )
                 
-                # Inference
                 with torch.no_grad():
                     outputs = transformer_model(**inputs)
                     logits = outputs.logits
@@ -276,18 +341,17 @@ def predict_comment(text: str) -> dict:
                 transformer_pred_label = int(torch.argmax(probabilities).item())
                 transformer_class = "Harmful" if transformer_pred_label == 1 else "Non-Harmful"
                 transformer_conf = float(probabilities[transformer_pred_label].item() * 100.0)
+                transformer_active = True
             except Exception as tr_err:
-                print(f"SentryText: Error during Transformer inference: {tr_err}")
-                # We will fall back to baselines automatically below since transformer_loaded represents success
-
+                print(f"SentryText: Error during local Transformer inference: {tr_err}")
+                
         # 3. Determine final moderation status (Consensus / Primary logic)
-        if transformer_loaded:
-            # Transformer is primary
+        if transformer_active:
             is_harmful = (transformer_pred_label == 1)
             final_class = transformer_class
             final_status = "Blocked" if is_harmful else "Approved"
             final_conf = transformer_conf
-        else:
+        elif baselines_ok:
             # Fall back to Logistic Regression & SVM consensus
             is_harmful = (lr_pred_label == 1) or (svm_pred_label == 1)
             
@@ -311,6 +375,8 @@ def predict_comment(text: str) -> dict:
                     final_conf = float(((lr_prob[0] + svm_prob[0]) / 2.0) * 100.0)
                 else:
                     final_conf = 100.0
+        else:
+            return fallback_moderation(text)
 
         return {
             "classification": final_class,
@@ -322,9 +388,10 @@ def predict_comment(text: str) -> dict:
             "svm_confidence": round(svm_conf, 2),
             "transformer_classification": transformer_class,
             "transformer_confidence": round(transformer_conf, 2),
-            "is_fallback": not transformer_loaded
+            "is_fallback": not transformer_active
         }
     except Exception as e:
         print(f"Runtime error during ML prediction: {e}. Using active fallback keyword moderation.")
         return fallback_moderation(text)
+
 
