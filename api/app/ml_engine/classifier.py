@@ -129,6 +129,7 @@ def auto_train_models():
         from sklearn.feature_extraction.text import TfidfVectorizer
         from sklearn.linear_model import LogisticRegression
         from sklearn.svm import SVC
+        from sklearn.calibration import CalibratedClassifierCV
         
         # Import local training data
         import sys
@@ -154,7 +155,8 @@ def auto_train_models():
         new_lr.fit(X, y)
         
         # Train SVM
-        new_svm = SVC(C=2.0, kernel='linear', probability=True, random_state=42)
+        base_svm = SVC(C=2.0, kernel='linear', random_state=42)
+        new_svm = CalibratedClassifierCV(base_svm, ensemble=False)
         new_svm.fit(X, y)
         
         # Assign to globals
