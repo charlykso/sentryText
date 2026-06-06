@@ -18,6 +18,8 @@ models_loaded = False
 transformer_tokenizer = None
 transformer_model = None
 transformer_loaded = False
+transformer_load_attempted = False
+hf_api_error_logged = False
 
 # Hugging Face Inference API Configurations (production serverless hosting)
 USE_HF_INFERENCE_API = os.getenv("USE_HF_INFERENCE_API", "False").lower() in ("true", "1", "yes")
@@ -216,7 +218,9 @@ def load_models():
                 print("SentryText: Failed to load or train baseline ML models.")
 
     # 2. Load Transformer model if not loaded
-    if not transformer_loaded:
+    global transformer_load_attempted
+    if not transformer_loaded and not transformer_load_attempted:
+        transformer_load_attempted = True
         try:
             weights_exist = False
             if os.path.exists(transformer_path):
@@ -327,7 +331,10 @@ def predict_comment(text: str) -> dict:
                 transformer_pred_label = 1 if transformer_class == "Harmful" else 0
                 transformer_active = True
             except Exception as api_err:
-                print(f"SentryText: HF Inference API call failed: {api_err}. Trying local model fallback.")
+                global hf_api_error_logged
+                if not hf_api_error_logged:
+                    print(f"SentryText: HF Inference API call failed: {api_err}. Trying local model fallback (this warning is logged once).")
+                    hf_api_error_logged = True
                 
         # Attempt Local Model fallback if API is disabled or failed, and local model is loaded
         if not transformer_active and transformer_loaded and transformer_tokenizer and transformer_model:

@@ -89,4 +89,7 @@ We fixed two critical issues reported in production logs:
    - Added `requests==2.31.0` to [requirements.txt](file:///c:/work/CyberBullying-Detector/api/requirements.txt) to support Hugging Face Inference API calls.
 2. **Missing Transformer Model Weights Exception:**
    - Modified [classifier.py](file:///c:/work/CyberBullying-Detector/api/app/ml_engine/classifier.py) to check for the presence of model weight files (`model.safetensors` or `pytorch_model.bin`) in the directory before attempting local Transformer model instantiation. This avoids printing a noisy traceback when large weights are omitted/gitignored.
+3. **Log Spam Prevention:**
+   - Introduced tracking states (`transformer_load_attempted` and `hf_api_error_logged`) in [classifier.py](file:///c:/work/CyberBullying-Detector/api/app/ml_engine/classifier.py) so that missing weight warnings and Hugging Face API connection failures are only logged **once** per application lifecycle rather than on every incoming message. This ensures clean production logs even when the server is offline or missing model weights.
+
 
