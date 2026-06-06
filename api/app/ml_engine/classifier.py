@@ -19,7 +19,6 @@ transformer_tokenizer = None
 transformer_model = None
 transformer_loaded = False
 transformer_load_attempted = False
-hf_api_error_logged = False
 
 # Hugging Face Inference API Configurations (production serverless hosting)
 USE_HF_INFERENCE_API = os.getenv("USE_HF_INFERENCE_API", "False").lower() in ("true", "1", "yes")
@@ -289,6 +288,7 @@ def predict_comment(text: str) -> dict:
     (primary serverless) or a local fine-tuned Transformer (fallback) with baseline SVM/LR telemetry.
     """
     try:
+        global USE_HF_INFERENCE_API
         # Load baseline models and local transformer if available
         # Note: True is returned if baseline models are ready
         baselines_ok = load_models()
@@ -333,10 +333,9 @@ def predict_comment(text: str) -> dict:
                 transformer_pred_label = 1 if transformer_class == "Harmful" else 0
                 transformer_active = True
             except Exception as api_err:
-                global hf_api_error_logged
-                if not hf_api_error_logged:
-                    print(f"SentryText: HF Inference API call failed: {api_err}. Trying local model fallback (this warning is logged once).")
-                    hf_api_error_logged = True
+                # Auto-disable HF API after first failure to avoid repeated timeouts
+                USE_HF_INFERENCE_API = False
+                print(f"SentryText: HF Inference API unreachable, auto-disabled for this session. Using baseline models. ({type(api_err).__name__})")
                 
         # Attempt Local Model fallback if API is disabled or failed, and local model is loaded
         if not transformer_active and transformer_loaded and transformer_tokenizer and transformer_model:
