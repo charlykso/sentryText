@@ -22,7 +22,7 @@ transformer_load_attempted = False
 
 # Google Gemini API Configurations (production LLM-based classification)
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-GEMINI_MODEL_ID = os.getenv("GEMINI_MODEL_ID", "gemini-2.0-flash")
+GEMINI_MODEL_ID = os.getenv("GEMINI_MODEL_ID", "gemini-2.5-flash-lite")
 USE_LLM_API = bool(GEMINI_API_KEY)  # Auto-enabled when API key is present
 
 # Classification prompt engineered for sarcasm, negation, and Nigerian Pidgin understanding
@@ -69,8 +69,18 @@ def query_gemini_api(text: str) -> dict:
         }
     }
     
-    response = requests.post(api_url, json=payload, timeout=10.0)
-    response.raise_for_status()
+    # Retry with backoff for 429 rate limit errors (free tier: 15 RPM)
+    import time
+    max_retries = 2
+    for attempt in range(max_retries + 1):
+        response = requests.post(api_url, json=payload, timeout=10.0)
+        if response.status_code == 429 and attempt < max_retries:
+            wait_time = 2 ** attempt  # 1s, 2s backoff
+            time.sleep(wait_time)
+            continue
+        response.raise_for_status()
+        break
+    
     result = response.json()
     
     # Parse Gemini response: candidates[0].content.parts[0].text contains JSON
@@ -346,9 +356,15 @@ def predict_comment(text: str) -> dict:
                 transformer_pred_label = 1 if transformer_class == "Harmful" else 0
                 transformer_active = True
             except Exception as api_err:
-                # Auto-disable Gemini API after first failure to avoid repeated timeouts
-                USE_LLM_API = False
-                print(f"SentryText: Gemini API unreachable, auto-disabled for this session. Using baseline models. ({type(api_err).__name__})")
+                import requests as _req
+                is_rate_limit = isinstance(api_err, _req.exceptions.HTTPError) and hasattr(api_err, 'response') and api_err.response is not None and api_err.response.status_code == 429
+                if is_rate_limit:
+                    # Rate limit is temporary — don't disable API, just fall back for this request
+                    print(f"SentryText: Gemini API rate limited (429). Falling back to baseline for this request.")
+                else:
+                    # Permanent failure (DNS, auth, server error) — disable API for session
+                    USE_LLM_API = False
+                    print(f"SentryText: Gemini API error, auto-disabled for this session. Using baseline models. ({type(api_err).__name__})")
                 
         # Attempt Local Model fallback if API is disabled or failed, and local model is loaded
         if not transformer_active and transformer_loaded and transformer_tokenizer and transformer_model:
