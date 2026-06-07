@@ -20,60 +20,73 @@ transformer_model = None
 transformer_loaded = False
 transformer_load_attempted = False
 
-# Hugging Face Inference API Configurations (production serverless hosting)
-USE_HF_INFERENCE_API = os.getenv("USE_HF_INFERENCE_API", "False").lower() in ("true", "1", "yes")
-HF_API_TOKEN = os.getenv("HF_API_TOKEN", "")
-HF_MODEL_ID = os.getenv("HF_MODEL_ID", "distilbert-base-multilingual-cased")
+# Google Gemini API Configurations (production LLM-based classification)
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+GEMINI_MODEL_ID = os.getenv("GEMINI_MODEL_ID", "gemini-2.0-flash")
+USE_LLM_API = bool(GEMINI_API_KEY)  # Auto-enabled when API key is present
 
-def query_hf_inference_api(text: str) -> dict:
+# Classification prompt engineered for sarcasm, negation, and Nigerian Pidgin understanding
+GEMINI_SYSTEM_PROMPT = """You are SentryText, a cyberbullying and harmful content detection system.
+Classify the following user message as either "Harmful" or "Non-Harmful".
+
+IMPORTANT RULES:
+- Understand Nigerian Pidgin English slang: "mumu"=fool, "ode"=stupid, "maga"=victim/fool, "ashawo"=prostitute, "olodo"=dunce, "ewu"=goat(insult), "thunder fire"=curse, "craze"=crazy, "chinko"=derogatory, "comot"=get out(dismissive)
+- Detect sarcasm used to bully (e.g., "Wow, you must be a genius to make such a dumb mistake" IS Harmful)
+- Understand negation properly (e.g., "I don't think you are stupid, you are actually smart" is NOT Harmful)
+- Casual conversation, friendly banter, jokes among friends, and constructive criticism are Non-Harmful
+- Direct insults, threats, slurs, derogatory language, and cyberbullying are Harmful
+
+Respond with ONLY a JSON object with exactly two fields:
+- "classification": either "Harmful" or "Non-Harmful"
+- "confidence": a number from 0 to 100"""
+
+def query_gemini_api(text: str) -> dict:
     """
-    Sends a request to the Hugging Face Free Serverless Inference API.
+    Sends a classification request to the Google Gemini API.
     Returns prediction label and confidence score.
     """
     import requests
-    api_url = f"https://api-inference.huggingface.co/models/{HF_MODEL_ID}"
-    headers = {}
-    if HF_API_TOKEN:
-        headers["Authorization"] = f"Bearer {HF_API_TOKEN}"
-        
+    import json
+    
+    api_url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL_ID}:generateContent?key={GEMINI_API_KEY}"
+    
     payload = {
-        "inputs": text,
-        "options": {"wait_for_model": True}
+        "contents": [{
+            "parts": [{"text": f'{GEMINI_SYSTEM_PROMPT}\n\nMessage to classify: "{text}"'}]
+        }],
+        "generationConfig": {
+            "temperature": 0.1,
+            "maxOutputTokens": 100,
+            "responseMimeType": "application/json",
+            "responseSchema": {
+                "type": "object",
+                "properties": {
+                    "classification": {"type": "string", "enum": ["Harmful", "Non-Harmful"]},
+                    "confidence": {"type": "number"}
+                },
+                "required": ["classification", "confidence"]
+            }
+        }
     }
     
-    # Set a 5 second timeout to prevent blocking the request chain
-    response = requests.post(api_url, headers=headers, json=payload, timeout=5.0)
+    response = requests.post(api_url, json=payload, timeout=10.0)
     response.raise_for_status()
     result = response.json()
     
-    # Parse standard Hugging Face sequence classification response
-    # e.g., [[{"label": "LABEL_0", "score": 0.9}, {"label": "LABEL_1", "score": 0.1}]]
-    if isinstance(result, list):
-        if len(result) > 0 and isinstance(result[0], list):
-            predictions = result[0]
-        else:
-            predictions = result
-            
-        prob_safe = 0.5
-        prob_harmful = 0.5
-        
-        for p in predictions:
-            label = str(p.get("label", "")).upper()
-            score = float(p.get("score", 0.5))
-            if label in ("LABEL_1", "HARMFUL", "TOXIC", "1"):
-                prob_harmful = score
-            elif label in ("LABEL_0", "NON-HARMFUL", "SAFE", "0"):
-                prob_safe = score
-                
-        pred_label = 1 if prob_harmful > prob_safe else 0
-        final_class = "Harmful" if pred_label == 1 else "Non-Harmful"
-        final_conf = prob_harmful if pred_label == 1 else prob_safe
-        return {
-            "classification": final_class,
-            "confidence": round(final_conf * 100.0, 2)
-        }
-    else:
-        raise ValueError(f"Unexpected HF Inference API response format: {result}")
+    # Parse Gemini response: candidates[0].content.parts[0].text contains JSON
+    response_text = result["candidates"][0]["content"]["parts"][0]["text"]
+    parsed = json.loads(response_text)
+    
+    classification = parsed.get("classification", "Non-Harmful")
+    confidence = float(parsed.get("confidence", 50.0))
+    
+    if classification not in ("Harmful", "Non-Harmful"):
+        classification = "Non-Harmful"
+    
+    return {
+        "classification": classification,
+        "confidence": round(confidence, 2)
+    }
 
 
 def validate_models() -> bool:
@@ -284,11 +297,11 @@ def fallback_moderation(text: str) -> dict:
 
 def predict_comment(text: str) -> dict:
     """
-    Predicts if a user input string contains cyberbullying using either the Hugging Face Free Inference API
-    (primary serverless) or a local fine-tuned Transformer (fallback) with baseline SVM/LR telemetry.
+    Predicts if a user input string contains cyberbullying using either the Google Gemini API
+    (primary LLM) or a local fine-tuned Transformer (fallback) with baseline SVM/LR telemetry.
     """
     try:
-        global USE_HF_INFERENCE_API
+        global USE_LLM_API
         # Load baseline models and local transformer if available
         # Note: True is returned if baseline models are ready
         baselines_ok = load_models()
@@ -324,18 +337,18 @@ def predict_comment(text: str) -> dict:
         transformer_pred_label = 0
         transformer_active = False
         
-        # Attempt Remote Inference API first (zero server footprint/memory optimization)
-        if USE_HF_INFERENCE_API:
+        # Attempt Google Gemini LLM API first (understands sarcasm, negation, Nigerian Pidgin)
+        if USE_LLM_API:
             try:
-                api_result = query_hf_inference_api(text)
+                api_result = query_gemini_api(text)
                 transformer_class = api_result["classification"]
                 transformer_conf = api_result["confidence"]
                 transformer_pred_label = 1 if transformer_class == "Harmful" else 0
                 transformer_active = True
             except Exception as api_err:
-                # Auto-disable HF API after first failure to avoid repeated timeouts
-                USE_HF_INFERENCE_API = False
-                print(f"SentryText: HF Inference API unreachable, auto-disabled for this session. Using baseline models. ({type(api_err).__name__})")
+                # Auto-disable Gemini API after first failure to avoid repeated timeouts
+                USE_LLM_API = False
+                print(f"SentryText: Gemini API unreachable, auto-disabled for this session. Using baseline models. ({type(api_err).__name__})")
                 
         # Attempt Local Model fallback if API is disabled or failed, and local model is loaded
         if not transformer_active and transformer_loaded and transformer_tokenizer and transformer_model:
