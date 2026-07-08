@@ -19,15 +19,22 @@ def test_system():
     
     # 2. Test ML classification predictions (Consensus Guardrails)
     test_cases = [
-        # Safe cases
+        # Safe cases (standard and slang)
         {"text": "Good morning my friends. Keep up the correct work on this app!", "expected": "Approved"},
         {"text": "This jollof recipe is ogbonge, i want to eat it. No shaking!", "expected": "Approved"},
-        # Toxic cases
+        
+        # Sarcastic and negation cases to contrast Transformer vs. Baseline models
+        {"text": "I don't think you are stupid, you are actually quite smart.", "expected": "Approved"},
+        {"text": "This is not a bad design at all.", "expected": "Approved"},
+        {"text": "Wow, you must be a genius to make such a dumb mistake.", "expected": "Blocked"},
+        {"text": "Oh great, the clown is talking again.", "expected": "Blocked"},
+        
+        # Toxic cases (standard and slang)
         {"text": "shut up you complete idiot, you don't know anything", "expected": "Blocked"},
         {"text": "look at this maga, craze dey worry that mumu boy. thunder fire you", "expected": "Blocked"}
     ]
     
-    print("\n2. ML Classifier Consensus Tests:")
+    print("\n2. ML Classifier Comparative Consensus Tests:")
     all_passed = True
     for tc in test_cases:
         verdict = predict_comment(tc["text"])
@@ -39,13 +46,14 @@ def test_system():
         print(f"  Input:   '{tc['text']}'")
         print(f"  Verdict:  {status} (Classification: {verdict['classification']}, Confidence: {verdict['confidence_score']}%)")
         print(f"  Model Breakdown:")
-        print(f"    LR:  {verdict['lr_classification']} ({verdict['lr_confidence']}%)")
-        print(f"    SVM: {verdict['svm_classification']} ({verdict['svm_confidence']}%)")
+        print(f"    Transformer: {verdict.get('transformer_classification', 'N/A')} ({verdict.get('transformer_confidence', 0.0)}%)")
+        print(f"    LR Baseline: {verdict['lr_classification']} ({verdict['lr_confidence']}%)")
+        print(f"    SVM Baseline:{verdict['svm_classification']} ({verdict['svm_confidence']}%)")
         print(f"  Passed:  {'[PASS]' if passed else '[FAIL]'}")
         print("-" * 50)
         
     if all_passed:
-        print("\nAll SentryText ML consensus verification assertions passed successfully!")
+        print("\nAll SentryText ML comparative consensus verification assertions passed successfully!")
     else:
         print("\nSome verification assertions failed. Please verify model files.")
 

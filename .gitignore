@@ -60,3 +60,6 @@ api/scripts/seed_db.py
 # OS
 .DS_Store
 Thumbs.db
+
+# Large ML Model Weights
+api/models/transformer_classifier/model.safetensors

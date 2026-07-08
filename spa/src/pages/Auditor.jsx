@@ -133,10 +133,16 @@ export default function Auditor() {
                 <h5 className="text-xs uppercase font-bold text-dark-400 tracking-wider flex items-center gap-1.5">
                   <Cpu className="w-3.5 h-3.5 text-brand-500" /> Diagnostic Model Breakdown
                 </h5>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                   <div className="bg-dark-950/40 border border-dark-850 rounded-2xl p-4 text-center">
                     <span className="text-xs text-dark-450 block">Consensus Confidence</span>
                     <strong className="text-dark-100 text-lg font-outfit block mt-0.5">{result.confidence_score}%</strong>
+                  </div>
+                  <div className="bg-dark-950/40 border border-dark-850 rounded-2xl p-4 text-center">
+                    <span className="text-xs text-dark-450 block">Transformer (DistilBERT)</span>
+                    <span className={`text-sm font-semibold block mt-1 ${result.transformer_classification === 'Harmful' ? 'text-red-400' : 'text-green-400'}`}>
+                      {result.transformer_classification || 'Non-Harmful'} ({result.transformer_confidence || 100}%)
+                    </span>
                   </div>
                   <div className="bg-dark-950/40 border border-dark-850 rounded-2xl p-4 text-center">
                     <span className="text-xs text-dark-450 block">Logistic Regression</span>

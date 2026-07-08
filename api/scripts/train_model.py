@@ -4,6 +4,7 @@ import joblib
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
+from sklearn.calibration import CalibratedClassifierCV
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
 # Add api directory to path to allow importing app modules
@@ -37,9 +38,10 @@ def train():
     lr_model.fit(X, y)
     
     # Train Support Vector Machine (SVM)
-    # probability=True is needed to output confidence probabilities
+    # CalibratedClassifierCV is used to output confidence probabilities
     print("Training Support Vector Machine (SVM) model...")
-    svm_model = SVC(C=2.0, kernel='linear', probability=True, random_state=42)
+    base_svm = SVC(C=2.0, kernel='linear', random_state=42)
+    svm_model = CalibratedClassifierCV(base_svm, ensemble=False)
     svm_model.fit(X, y)
     
     # Evaluate models on training data
